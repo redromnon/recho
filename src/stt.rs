@@ -3,6 +3,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::sync::{Arc, Mutex};
 use samplerate::{convert, ConverterType};
 use std::time::{Instant};
+use colored::*;
 
 pub struct AudioRecorder {
     // We store the stream because the recording stops when the stream is dropped
@@ -83,11 +84,14 @@ impl STTModel {
         let ctx = WhisperContext::new_with_params(model_path, WhisperContextParameters::default())
             .expect("Failed to load model");
         let state = ctx.create_state().expect("Failed to create state");
-        println!("Whisper model loaded in: {:?}", start.elapsed());
+        println!("{} {:?}", "Whisper model loaded in:".blue(), start.elapsed());
         Self { state }
     }
 
     pub fn transcribe(&mut self, samples: Vec<i16>, source_sample_rate: u32) -> String {
+
+        let start: Instant;
+        start = Instant::now();
 
         // the sampling strategy will determine how accurate your final output is going to be
         // typically BeamSearch is more accurate at the cost of significantly increased CPU time
@@ -145,6 +149,8 @@ impl STTModel {
             // );
             full_text.push_str(segment.to_str().unwrap());
         }
+
+        println!("{} {:?}", "Audio transcribed:".green(), start.elapsed());
 
         full_text
 

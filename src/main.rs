@@ -2,21 +2,22 @@ mod tts;
 mod stt;
 use tts::{TTSModel};
 use stt::{AudioRecorder, STTModel};
+use colored::*;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut recorder = AudioRecorder::new();
-    let mut speech_recogniser = STTModel::new("whisper/ggml-small-q8_0.bin");
-    let mut piper_tts = TTSModel::new("piper/en_GB-cori-medium.onnx.json");
+    let mut speech_recogniser = STTModel::new("whisper/ggml-small.bin");
+    let mut piper_tts = TTSModel::new("piper/en_US-arctic-medium.onnx.json", 12);
 
     loop  {
 
-        println!("Press Enter to start recording...");
+        println!("Press ENTER to begin recording...");
 
         let mut input = String::new();
         std::io::stdin().read_line(&mut input).unwrap();
 
-        println!("[||] Recording... Press Enter to stop.");
+        println!("{}", "Recording... Press ENTER to stop.\nOr SAY BYE to end conversation.".yellow());
         recorder.start_recording().unwrap();
 
         let mut input = String::new();
@@ -31,8 +32,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
         let trimmed_input = transcribed_text.trim();
 
-        if trimmed_input.to_lowercase().contains("stop") {
-            println!("Exiting. Goodbye!");
+        if trimmed_input.to_lowercase().contains("bye") {
+            let bye_text = "Goodbye! Have a nice day!";
+            println!("{}", bye_text.blue());
+            piper_tts.process_text(bye_text);
             break;
         }else {
             piper_tts.process_text(trimmed_input);

@@ -12,3 +12,4 @@ whisper-rs = { version = "0.15.1", features = ["vulkan"] }
 hound = "3.5.1"
 cpal = "0.15"
 samplerate = "0.2.4"
+colored = "3.0.0"
