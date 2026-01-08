@@ -2,6 +2,7 @@ use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextPar
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::sync::{Arc, Mutex};
 use samplerate::{convert, ConverterType};
+use std::time::{Instant};
 
 pub struct AudioRecorder {
     // We store the stream because the recording stops when the stream is dropped
@@ -75,10 +76,14 @@ pub struct STTModel {
 impl STTModel {
 
     pub fn new(model_path: &str) -> Self {
+
+        //Load model
+        let start: Instant;
+        start = Instant::now();
         let ctx = WhisperContext::new_with_params(model_path, WhisperContextParameters::default())
             .expect("Failed to load model");
         let state = ctx.create_state().expect("Failed to create state");
-        println!("Whisper model loaded...");
+        println!("Whisper model loaded in: {:?}", start.elapsed());
         Self { state }
     }
 
@@ -129,15 +134,15 @@ impl STTModel {
         //Fetch segments
         let mut full_text = String::new();
         for segment in self.state.as_iter() {
-            println!(
-                "[{} - {}]: {}",
-                // these timestamps are in centiseconds (10s of milliseconds)
-                segment.start_timestamp(),
-                segment.end_timestamp(),
-                // this default Display implementation will result in any invalid UTF-8
-                // being converted into the Unicode replacement character, U+FFFD
-                segment
-            );
+            // println!(
+            //     "[{} - {}]: {}",
+            //     // these timestamps are in centiseconds (10s of milliseconds)
+            //     segment.start_timestamp(),
+            //     segment.end_timestamp(),
+            //     // this default Display implementation will result in any invalid UTF-8
+            //     // being converted into the Unicode replacement character, U+FFFD
+            //     segment
+            // );
             full_text.push_str(segment.to_str().unwrap());
         }
 
