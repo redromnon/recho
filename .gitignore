@@ -1,5 +1,5 @@
 /target
-/src/piper
-/src/mini-bart-g2p
-/src/whisper
+/piper
+/mini-bart-g2p
+/whisper
 *.wav

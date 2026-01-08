@@ -7,7 +7,7 @@ use stt::{AudioRecorder, STTModel};
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let mut recorder = AudioRecorder::new();
-    let mut speech_recogniser = STTModel::new();
+    let mut speech_recogniser = STTModel::new("whisper/ggml-small-q8_0.bin");
 
     println!("Press Enter to start recording...");
 
@@ -27,7 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("{:?}", transcribed_text);
 
-    // let tts_config_path = "src/piper/en_GB-cori-medium.onnx.json";
+    // let tts_config_path = "piper/en_GB-cori-medium.onnx.json";
 
     // let mut synth = load_tts_model(tts_config_path);
 

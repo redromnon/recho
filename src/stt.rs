@@ -1,4 +1,4 @@
-use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
+use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters, WhisperState};
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::sync::{Arc, Mutex};
 use samplerate::{convert, ConverterType};
@@ -59,16 +59,8 @@ impl AudioRecorder {
         self.stream = None;
         
         let mut buffer = self.data.lock().unwrap();
-        let mut raw_samples = buffer.clone();
+        let raw_samples = buffer.clone();
         buffer.clear();
-
-        // raw_samples = convert(
-        //         self.source_sample_rate,
-        //         16000,
-        //         1, // Mono
-        //         ConverterType::SincBestQuality,
-        //         &raw_samples as i16,
-        //     ).expect("Resampling failed");
         
         (raw_samples, self.source_sample_rate)
     }
@@ -77,24 +69,20 @@ impl AudioRecorder {
 
 
 pub struct STTModel {
-    model_path: String
+    state: WhisperState,
 }
 
 impl STTModel {
 
-    pub fn new() -> Self {
-        Self {
-            model_path: "src/whisper/ggml-small-q8_0.bin".to_string()
-        }
+    pub fn new(model_path: &str) -> Self {
+        let ctx = WhisperContext::new_with_params(model_path, WhisperContextParameters::default())
+            .expect("Failed to load model");
+        let state = ctx.create_state().expect("Failed to create state");
+        println!("Whisper model loaded...");
+        Self { state }
     }
 
     pub fn transcribe(&mut self, samples: Vec<i16>, source_sample_rate: u32) -> String {
-
-        // load a context and model
-        let ctx = WhisperContext::new_with_params(&self.model_path, WhisperContextParameters::default())
-            .expect("failed to load model");
-        // create a state attached to the model
-        let mut state = ctx.create_state().expect("failed to create state");
 
         // the sampling strategy will determine how accurate your final output is going to be
         // typically BeamSearch is more accurate at the cost of significantly increased CPU time
@@ -120,11 +108,8 @@ impl STTModel {
 
         whisper_rs::convert_integer_to_float_audio(&samples, &mut inter_samples)
             .expect("failed to convert audio data");
-        // Convert i16 to f32
-        // whisper_rs::convert_stereo_to_mono_audio(&inter_samples)
-        //     .expect("failed to convert audio data");
-
-        // 2. Resample to 16,000Hz (Whisper's requirement)
+        
+        //Resample to 16,000Hz (Whisper's requirement)
         if source_sample_rate != 16000 {
             inter_samples = convert(
                 source_sample_rate,
@@ -136,14 +121,14 @@ impl STTModel {
         }
         
 
-        // now we can run the model
-        state
+        //Run model
+        self.state
             .full(params, &inter_samples[..])
             .expect("failed to run model");
 
-        // fetch the results
+        //Fetch segments
         let mut full_text = String::new();
-        for segment in state.as_iter() {
+        for segment in self.state.as_iter() {
             println!(
                 "[{} - {}]: {}",
                 // these timestamps are in centiseconds (10s of milliseconds)
