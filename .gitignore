@@ -1,0 +1,5 @@
+/target
+/src/piper
+/src/mini-bart-g2p
+/src/whisper
+*.wav
