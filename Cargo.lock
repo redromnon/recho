@@ -1748,6 +1748,7 @@ dependencies = [
 name = "recho"
 version = "0.1.0"
 dependencies = [
+ "clap",
  "colored",
  "cpal 0.15.3",
  "hound",

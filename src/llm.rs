@@ -36,15 +36,10 @@ impl LLM {
 
         //Client setup
         let client = reqwest::blocking::Client::new();
-        let url = url.to_string(); // Adjust to your server port
+        let url = url.to_string();
 
         //Chat history
-        let conversation_history = vec![
-            Message {
-                role: "system".to_string(),
-                content: "You are Gem, an AI assistant. Answer in a short and concise manner.".to_string(),
-            }
-        ];
+        let conversation_history = vec![];
 
         Self {client, url, conversation_history}
 
@@ -64,6 +59,19 @@ impl LLM {
         }
     }
 
+    fn post_process_text(&mut self, text: &str) -> String{
+
+        let cleaned_text: String = text.chars()
+            .filter(|c| !self.is_emoji(c) && *c != '*') 
+            .collect::<String>()             
+            .split_whitespace()         
+            .collect::<Vec<_>>()   
+            .join(" "); 
+
+        cleaned_text
+
+    }
+
     pub fn chat(&mut self, user_input: &str)-> Result<String, Box<dyn std::error::Error>> {
 
         let start: Instant;
@@ -77,29 +85,24 @@ impl LLM {
         );
 
 
-        //2. Prepare the JSON body
+        //JSON body
         let body = serde_json::json!({
             "messages": &self.conversation_history
         });
 
-        // 3. Send the POST request
+        //Send the POST request
         let res = self.client.post(&self.url)
             .json(&body)
             .send()?;
 
-        // 4. Parse the response
+        //Parse the response
         let response_data: ChatResponse = res.json()?;
         
         if let Some(choice) = response_data.choices.first() {
 
-            let ai_response = &choice.message.content;
+            let ai_response = &choice.message.content;  
 
-            let cleaned_ai_response: String = ai_response.chars()
-            .filter(|c| !self.is_emoji(c)) 
-            .collect::<String>()             
-            .split_whitespace()         
-            .collect::<Vec<_>>()   
-            .join(" ");     
+            let cleaned_ai_response = self.post_process_text(ai_response);  
 
             self.conversation_history.push(
                 Message {

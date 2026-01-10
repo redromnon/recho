@@ -5,24 +5,44 @@ use tts::{TTSModel};
 use stt::{AudioRecorder, STTModel};
 use llm::{LLM};
 use colored::*;
+use clap::Parser;
+
+/// Speech-to-speech AI assistant built with Rust, Whisper and Piper
+#[derive(Parser)]
+struct Cli {
+    /// The LLM inference engine server's URL
+    #[arg(short)]
+    llm_url: String,
+    /// The path to the Piper model for text-to-speech
+    #[arg(short)]
+    piper_model_path: std::path::PathBuf,
+    /// The specific speaker id if multiple speakers exist
+    #[arg(short, default_value_t = 1)]
+    speaker_id: u8,
+    /// The path to the Whisper model for speech-to-text
+    #[arg(short)]
+    whisper_model_path: std::path::PathBuf
+}
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
 
-    let mut llm_client = LLM::new("http://localhost:1234/v1/chat/completions");
+    let args = Cli::parse();
+
     let mut recorder = AudioRecorder::new();
-    let mut speech_recogniser = STTModel::new("whisper/ggml-small.bin");
-    let mut piper_tts = TTSModel::new("piper/en_US-arctic-medium.onnx.json", 12);
+    let mut llm_client = LLM::new(&args.llm_url);
+    let mut speech_recogniser = STTModel::new(args.whisper_model_path);
+    let mut piper_tts = TTSModel::new(args.piper_model_path, args.speaker_id);
 
     println!("{}", "This is a speech-to-speech voice assistant.".bright_white().bold());
 
     loop  {
 
-        println!("{}", "\n(Press the ENTER key to record your voice)".yellow());
+        println!("{}", "[Recording paused]: (Press the ENTER key to record your voice)".yellow());
 
         let mut input = String::new();
         std::io::stdin().read_line(&mut input).unwrap();
 
-        println!("{}", "Now RECORDING - Say something! To end conversation, say 'BYE'.\n(Press the ENTER key again to stop recording)".bright_red());
+        println!("{}", "[Recording started]: Say something! To end conversation, say 'BYE'. (Press the ENTER key again to stop recording)".bright_red());
         recorder.start_recording().unwrap();
 
         let mut user_input = String::new();
@@ -46,6 +66,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if transcribed_text.to_lowercase().contains("bye") {
             break;
         }
+
+        println!();
 
     }
 

@@ -14,19 +14,19 @@ pub struct TTSModel {
 
 impl TTSModel {
     
-    pub fn new(config_path: &str, speaker_id: u8) -> Self {
+    pub fn new(config_path: std::path::PathBuf, speaker_id: u8) -> Self {
 
         //Audio stream setup
         let _stream = OutputStreamBuilder::open_default_stream()
             .expect("Failed to open default stream");
 
-        // Create a sink attached to the stream mixer
+        //Create a sink attached to the stream mixer
         let sink = Sink::connect_new(&_stream.mixer());
 
-        // Load the model
+        //Load the model
         let start: Instant;
         start = Instant::now();
-        let model = piper_rs::from_config_path(Path::new(config_path)).unwrap();        
+        let model = piper_rs::from_config_path(Path::new(&config_path)).unwrap();        
 
         //Check if many speakers exist
         let speakers = model
@@ -42,13 +42,13 @@ impl TTSModel {
             println!("Selected speaker id: {}", speaker_id);
         }
 
-        // Create a single synthesizer that owns the model
+        //Create a single synthesizer that owns the model
         let synth = PiperSpeechSynthesizer::new(model).unwrap();
 
         println!("{} {:?}", "TTS model loaded in:".blue(), start.elapsed());
 
         //Set sample rate
-        let sample_rate = if config_path.contains(".low") {16000} else {22050};
+        let sample_rate = if config_path.to_str().unwrap().contains(".low") {16000} else {22050};
 
         Self { synth, sink, _stream, sample_rate }
     }
@@ -57,13 +57,13 @@ impl TTSModel {
 
         for sample in samples{
 
-            // Create audio source from your samples (mono)
+            //Create audio source from your samples (mono)
             let source = SamplesBuffer::new(1, self.sample_rate, sample);
 
-            // Append and play
+            //Append and play
             self.sink.append(source);
 
-            // Wait until finished
+            //Wait until finished
             self.sink.sleep_until_end();
 
         }
@@ -82,7 +82,7 @@ impl TTSModel {
 
         for sentence in sentences{
 
-            // Prepare a buffer for samples
+            //Prepare a buffer for samples
             let mut samples: Vec<f32> = Vec::new();
 
             let audio = self.synth.synthesize_parallel(

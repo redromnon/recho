@@ -3,6 +3,7 @@ use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use std::sync::{Arc, Mutex};
 use samplerate::{convert, ConverterType};
 use std::time::{Instant};
+use std::path::Path;
 use colored::*;
 
 pub struct AudioRecorder {
@@ -22,7 +23,7 @@ impl AudioRecorder {
         }
     }
 
-    /// Function 1: Start Recording
+    //Start voice recording
     pub fn start_recording(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         let host = cpal::default_host();
         let device = host.default_input_device()
@@ -55,7 +56,7 @@ impl AudioRecorder {
         Ok(())
     }
 
-    /// Function 2: Stop Recording and return the samples
+    //Stop recording and return the samples
     pub fn stop_recording(&mut self) -> (Vec<i16>, u32) {
         // Dropping the stream stops the recording
         self.stream = None;
@@ -76,45 +77,39 @@ pub struct STTModel {
 
 impl STTModel {
 
-    pub fn new(model_path: &str) -> Self {
+    pub fn new(model_path: std::path::PathBuf) -> Self {
 
         //Load model
         let start: Instant;
         start = Instant::now();
-        let ctx = WhisperContext::new_with_params(model_path, WhisperContextParameters::default())
+        let ctx = WhisperContext::new_with_params(Path::new(&model_path).to_str().unwrap(), WhisperContextParameters::default())
             .expect("Failed to load model");
         let state = ctx.create_state().expect("Failed to create state");
         println!("{} {:?}", "Whisper model loaded in:".blue(), start.elapsed());
         Self { state }
     }
 
+    //Transcribe audio
     pub fn transcribe(&mut self, samples: Vec<i16>, source_sample_rate: u32) -> String {
 
         let start: Instant;
         start = Instant::now();
 
-        // the sampling strategy will determine how accurate your final output is going to be
-        // typically BeamSearch is more accurate at the cost of significantly increased CPU time
+        //Setting Whisper sampling stratergy
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
 
-        // and set the language to translate to as english
+        //Set the language to translate to as english
         params.set_language(Some("en"));
 
-        // we also explicitly disable anything that prints to stdout
-        // despite all of this you will still get things printing to stdout,
-        // be prepared to deal with it
+        //Disable logs
         params.set_print_special(false);
         params.set_print_progress(false);
         params.set_print_realtime(false);
         params.set_print_timestamps(false);
 
-        // we must convert to 16KHz mono f32 samples for the model
-        // some utilities exist for this
-        // note that you don't need to use these, you can do it yourself or any other way you want
-        // these are just provided for convenience
         let mut inter_samples = vec![Default::default(); samples.len()];
-        //let _mono_samples = vec![Default::default(); samples.len() / 2];
 
+        //Convert 16bit mono audio to f32 float
         whisper_rs::convert_integer_to_float_audio(&samples, &mut inter_samples)
             .expect("failed to convert audio data");
         
