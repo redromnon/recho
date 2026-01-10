@@ -2,12 +2,14 @@ use piper_rs::synth::{PiperSpeechSynthesizer};
 use std::time::{Instant};
 use rodio::{OutputStream, OutputStreamBuilder, Sink, buffer::SamplesBuffer};
 use std::path::Path;
+use sentencex::segment;
 use colored::*;
 
 pub struct TTSModel {
     synth: PiperSpeechSynthesizer,
     sink: Sink,
-    _stream: OutputStream
+    _stream: OutputStream, //Required to keep output loaded due to ownership and access to sound card
+    sample_rate: u32
 }
 
 impl TTSModel {
@@ -45,25 +47,27 @@ impl TTSModel {
 
         println!("{} {:?}", "TTS model loaded in:".blue(), start.elapsed());
 
-        Self { synth, sink, _stream }
+        //Set sample rate
+        let sample_rate = if config_path.contains(".low") {16000} else {22050};
+
+        Self { synth, sink, _stream, sample_rate }
     }
 
-    fn play_samples(&mut self, samples: Vec<f32>) {
-        // // Open default output stream
-        // let stream = OutputStreamBuilder::open_default_stream()
-        //     .expect("Failed to open default stream");
+    fn play_samples(&mut self, samples: Vec<Vec<f32>>) {
 
-        // // Create a sink attached to the stream mixer
-        // let sink = Sink::connect_new(&stream.mixer());
+        for sample in samples{
 
-        // Create audio source from your samples (mono)
-        let source = SamplesBuffer::new(1, 22050, samples);
+            // Create audio source from your samples (mono)
+            let source = SamplesBuffer::new(1, self.sample_rate, sample);
 
-        // Append and play
-        self.sink.append(source);
+            // Append and play
+            self.sink.append(source);
 
-        // Wait until finished
-        self.sink.sleep_until_end();
+            // Wait until finished
+            self.sink.sleep_until_end();
+
+        }
+
     }
 
     pub fn process_text(&mut self, text: &str) {
@@ -71,21 +75,31 @@ impl TTSModel {
         let start: Instant;
         start = Instant::now();
 
-        // Prepare a buffer for samples
-        let mut samples: Vec<f32> = Vec::new();
+        //Split text into sentences
+        let sentences = segment("en", text);
 
-        let audio = self.synth.synthesize_parallel(
-            text.to_string(), 
-            None
-        
-        ).unwrap();
-        println!("{} {:?}", "Text processed in:".green(), start.elapsed());
+        let mut sentence_samples = vec![];
 
-        for result in audio {
-            samples.append(&mut result.unwrap().into_vec());
+        for sentence in sentences{
+
+            // Prepare a buffer for samples
+            let mut samples: Vec<f32> = Vec::new();
+
+            let audio = self.synth.synthesize_parallel(
+                sentence.to_string(), 
+                None
+            ).unwrap();
+
+            for result in audio {
+                samples.append(&mut result.unwrap().into_vec());
+            }
+
+            sentence_samples.push(samples);
+
         }
+        println!("{} {:?}", "Speech processed in:".green(), start.elapsed());
 
-        self.play_samples(samples);
+        self.play_samples(sentence_samples);
 
 
     }

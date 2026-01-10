@@ -150,7 +150,7 @@ impl STTModel {
             full_text.push_str(segment.to_str().unwrap());
         }
 
-        println!("{} {:?}", "Audio transcribed:".green(), start.elapsed());
+        println!("{} {:?}", "Audio transcribed:", start.elapsed());
 
         full_text
 
