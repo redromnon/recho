@@ -1,9 +1,12 @@
 # Recho
-Recho is a fully local AI chatbot with voice-support. It implements a speech-to-speech pipeline based on open-source models like Whisper (speech to text), Piper (speech to text) and any locally running language model at its core.
+Recho is a fully local AI chatbot with voice support. It implements a speech-to-speech pipeline based on open-source models like Whisper (speech to text), Piper (speech to text) and a local language model at its core.
 
 Specifically, it uses whisper.cpp via `whisper-rs` and `piper-rs` that uses onnxruntime (ort) under-the-hood.
 
-I built this project primarily to improve my Rust skills. This isn't a robust application, but it works.
+I built this project primarily to improve my Rust skills. This isn't a robust application, nothing fancy, but it works.
+
+## Demo
+[recho_v1_demo.webm](https://github.com/user-attachments/assets/de9396d6-e485-450b-9ebf-464ff67d66bb)
 
 ## Building and Running
 
