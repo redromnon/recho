@@ -1,7 +1,7 @@
 # Recho
-Recho is a fully local AI chatbot with voice support. It implements a speech-to-speech pipeline based on open-source models like Whisper (speech to text), Piper (speech to text) and a local language model at its core.
+Recho is a fully local AI chatbot with voice support. It implements a speech-to-speech pipeline based on open-source models like Whisper (speech to text), Supertonic (speech to text) and a local language model at its core.
 
-Specifically, it uses whisper.cpp via `whisper-rs` and `piper-rs` that uses onnxruntime (ort) under-the-hood.
+Specifically, it uses whisper.cpp via `whisper-rs` and a custom Supertonic implementation that uses onnxruntime (ort) under-the-hood.
 
 I built this project primarily to improve my Rust skills. This isn't a robust application, nothing fancy, but it works.
 
@@ -29,16 +29,16 @@ cargo build
 ### Pre-requisites
 - An LLM running via inference engines like Ollama, llama.cpp, etc.
 - A [Whisper model](https://huggingface.co/ggerganov/whisper.cpp) (like `whisper-ggml-small.bin`)
-- A [Piper TTS model](https://huggingface.co/rhasspy/piper-voices) (like `en_US-arctic-medium.onnx` and `en_US-arctic-medium.onnx.json`)
+- A [Supertoic TTS ONNX models and voice styles](https://huggingface.co/Supertone/supertonic-2)
 
-Run the project with:
+Run the project like this:
 
 ```bash
-cargo run -- -l "http://localhost:1234/v1/chat/completions" -p "piper/en_GB-cori-medium.onnx.json" -w "whisper/ggml-small.bin"
+cargo run -- -l "http://localhost:1234/v1/chat/completions" -o "supertonic/models" -v "supertonic/voices/M1.json" -w "whisper/ggml-small.bin"
 ```
 
 *Tested on a Linux system with LMStudio for serving LLMs.*
 
 ## Credits
 - thewh1teagle's [piper-rs](https://github.com/thewh1teagle/piper-rs)
-- tazz4843's [whisper-rs](https://codeberg.org/tazz4843/whisper-rs)
+- supertone-inc's [supertonic](https://github.com/supertone-inc/supertonic)
