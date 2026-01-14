@@ -4,10 +4,8 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-piper-rs = "0.1.9"
 rodio = "0.21.1"
-ort = { version = "=2.0.0-rc.9" }
-ort-sys = { version = "=2.0.0-rc.9", default-features = false }
+ort = "2.0.0-rc.7"
 whisper-rs = { version = "0.15.1", features = ["vulkan"] }
 hound = "3.5.1"
 cpal = "0.15"
@@ -18,3 +16,9 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sentencex = "0.1.13"
 clap = { version = "4.0", features = ["derive"] }
+ndarray = "0.17.2"
+anyhow = "1.0.100"
+unicode-normalization = "0.1.25"
+rand_distr = "0.5.1"
+regex = "1.12.2"
+rand = "0.9.2"

@@ -1,20 +1,19 @@
-use piper_rs::synth::{PiperSpeechSynthesizer};
 use std::time::{Instant};
 use rodio::{OutputStream, OutputStreamBuilder, Sink, buffer::SamplesBuffer};
 use std::path::Path;
-use sentencex::segment;
 use colored::*;
+use crate::tts_helper::{load_text_to_speech, load_voice_style, TextToSpeech, Style};
 
 pub struct TTSModel {
-    synth: PiperSpeechSynthesizer,
+    model: TextToSpeech,
+    voice_style: Style,
     sink: Sink,
     _stream: OutputStream, //Required to keep output loaded due to ownership and access to sound card
-    sample_rate: u32
 }
 
 impl TTSModel {
     
-    pub fn new(config_path: std::path::PathBuf, speaker_id: u8) -> Self {
+    pub fn new(onnx_path: std::path::PathBuf, voice_style_path: std::path::PathBuf) -> Self {
 
         //Audio stream setup
         let _stream = OutputStreamBuilder::open_default_stream()
@@ -26,80 +25,55 @@ impl TTSModel {
         //Load the model
         let start: Instant;
         start = Instant::now();
-        let model = piper_rs::from_config_path(Path::new(&config_path)).unwrap();        
+        const USE_GPU: bool = false;
+        let onnx_dir = Path::new(&onnx_path).to_str().unwrap();
+        let model = load_text_to_speech(onnx_dir, USE_GPU).unwrap();        
 
-        //Check if many speakers exist
-        let speakers = model
-        .get_speakers()
-        .unwrap()
-        .unwrap()
-        .into_iter()
-        .collect::<Vec<_>>();
-
-        if speakers.len() > 1 {
-            let sid = speaker_id as i64;
-            model.set_speaker(sid);
-            println!("Selected speaker id: {}", speaker_id);
-        }
-
-        //Create a single synthesizer that owns the model
-        let synth = PiperSpeechSynthesizer::new(model).unwrap();
+        //Add voice
+        let voice_style_paths = voice_style_path.to_str().unwrap();
+        let voice_style = load_voice_style(&[voice_style_paths.to_string()], true).unwrap();
 
         println!("{} {:?}", "TTS model loaded in:".blue(), start.elapsed());
 
-        //Set sample rate
-        let sample_rate = if config_path.to_str().unwrap().contains(".low") {16000} else {22050};
-
-        Self { synth, sink, _stream, sample_rate }
+        Self { model, voice_style, sink, _stream }
     }
 
-    fn play_samples(&mut self, samples: Vec<Vec<f32>>) {
+    fn play_samples(&mut self, samples: Vec<f32>, sample_rate: u32) {
 
-        for sample in samples{
+        //Create audio source from your samples (mono)
+        let source = SamplesBuffer::new(1, sample_rate, samples);
 
-            //Create audio source from your samples (mono)
-            let source = SamplesBuffer::new(1, self.sample_rate, sample);
+        //Append and play
+        self.sink.append(source);
 
-            //Append and play
-            self.sink.append(source);
-
-            //Wait until finished
-            self.sink.sleep_until_end();
-
-        }
+        //Wait until finished
+        self.sink.sleep_until_end();
 
     }
 
     pub fn process_text(&mut self, text: &str) {
 
-        let start: Instant;
-        start = Instant::now();
+        let start= Instant::now();
 
-        //Split text into sentences
-        let sentences = segment("en", text);
+        //Destructure the tuple returned by the model
+        let (wav, duration): (Vec<f32>, f32) = self.model.call(
+            text, 
+            "en", 
+            &self.voice_style, 
+            10, 
+            1.2, 
+            0.3
+        ).unwrap();
 
-        let mut sentence_samples = vec![];
+        //Create the trimmed version
+        let actual_len = (self.model.sample_rate as f32 * duration) as usize;
+        
+        //Use .to_vec() to turn the slice back into an owned Vec<f32>
+        let wav_trimmed = wav[..actual_len.min(wav.len())].to_vec();
 
-        for sentence in sentences{
-
-            //Prepare a buffer for samples
-            let mut samples: Vec<f32> = Vec::new();
-
-            let audio = self.synth.synthesize_parallel(
-                sentence.to_string(), 
-                None
-            ).unwrap();
-
-            for result in audio {
-                samples.append(&mut result.unwrap().into_vec());
-            }
-
-            sentence_samples.push(samples);
-
-        }
         println!("{} {:?}", "Speech processed in:".green(), start.elapsed());
 
-        self.play_samples(sentence_samples);
+        self.play_samples(wav_trimmed, self.model.sample_rate as u32);
 
 
     }
