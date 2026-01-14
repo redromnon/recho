@@ -6,7 +6,7 @@ Specifically, it uses whisper.cpp via `whisper-rs` and a custom Supertonic imple
 I built this project primarily to improve my Rust skills. This isn't a robust application, nothing fancy, but it works.
 
 ## Demo
-[recho_v1_demo.webm](https://github.com/user-attachments/assets/de9396d6-e485-450b-9ebf-464ff67d66bb)
+[recho_v2_demo.webm](https://github.com/user-attachments/assets/3bb35020-44b5-4af9-a283-66220728630a)
 
 ## Building and Running
 
